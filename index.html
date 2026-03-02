@@ -1,10 +1,149 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Mike's Library</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mike's Personal Library</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+    padding: 20px;
+}
+h1 {
+    text-align: center;
+}
+.controls {
+    max-width: 1000px;
+    margin: 0 auto 15px auto;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+input, select {
+    padding: 10px;
+    font-size: 16px;
+    flex: 1;
+    min-width: 200px;
+}
+.count {
+    max-width: 1000px;
+    margin: 0 auto 10px auto;
+}
+table {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    border-collapse: collapse;
+    background: white;
+}
+th, td {
+    padding: 8px;
+    border: 1px solid #ddd;
+}
+th {
+    background: #333;
+    color: white;
+}
+tr:hover {
+    background: #f1f1f1;
+}
+</style>
 </head>
 <body>
+
 <h1>Mike's Personal Library</h1>
-<p>Website is live!</p>
+
+<div class="controls">
+<input type="text" id="search" placeholder="Search by title or author">
+<select id="genreFilter">
+<option value="">All Genres</option>
+</select>
+</div>
+
+<div class="count" id="count"></div>
+
+<table>
+<thead>
+<tr>
+<th>Author</th>
+<th>Title</th>
+<th>Genre</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+<script>
+let books = [];
+
+async function loadData() {
+    const response = await fetch("library.csv");
+    const text = await response.text();
+
+    const rows = text.split("\n").map(r => r.split(","));
+    const headers = rows[0].map(h => h.trim().toLowerCase());
+
+    const authorIndex = headers.indexOf("author");
+    const titleIndex = headers.indexOf("title");
+    const genreIndex = headers.indexOf("genre");
+
+    books = rows.slice(1).map(row => ({
+        author: row[authorIndex] || "",
+        title: row[titleIndex] || "",
+        genre: row[genreIndex] || ""
+    }));
+
+    populateGenres();
+    render();
+}
+
+function populateGenres() {
+    const genres = [...new Set(books.map(b => b.genre).filter(g => g))].sort();
+    const select = document.getElementById("genreFilter");
+
+    genres.forEach(g => {
+        const option = document.createElement("option");
+        option.value = g;
+        option.textContent = g;
+        select.appendChild(option);
+    });
+}
+
+function render() {
+    const search = document.getElementById("search").value.toLowerCase();
+    const genre = document.getElementById("genreFilter").value;
+
+    const filtered = books.filter(b => {
+        const matchesSearch =
+            b.title.toLowerCase().includes(search) ||
+            b.author.toLowerCase().includes(search);
+        const matchesGenre = !genre || b.genre === genre;
+        return matchesSearch && matchesGenre;
+    });
+
+    const tbody = document.getElementById("tableBody");
+    tbody.innerHTML = "";
+
+    filtered.forEach(b => {
+        const row = `<tr>
+            <td>${b.author}</td>
+            <td>${b.title}</td>
+            <td>${b.genre}</td>
+        </tr>`;
+        tbody.innerHTML += row;
+    });
+
+    document.getElementById("count").innerText =
+        filtered.length + " shown • " + books.length + " total books";
+}
+
+document.getElementById("search").addEventListener("input", render);
+document.getElementById("genreFilter").addEventListener("change", render);
+
+loadData();
+</script>
+
 </body>
 </html>
